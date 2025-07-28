@@ -242,7 +242,8 @@ Special `FounderLiverDietStudy`:
 
 ```{r}
 foundrHarmony::bind_traits(
-  c("Physio","LivMet","Lipid","LivRna","LivIso","MixMod"), traitRoot = "liver")
+  c("Physio","LivMet","Lipid","LivRna","LivIso","MixMod"),
+  traitRoot = "liver")
 ```
 
 Small tester
