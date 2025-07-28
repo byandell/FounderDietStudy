@@ -8,6 +8,9 @@ params:
   rootdir: ~/founder_diet_study
 ---
 
+This uses tools in
+[foundrHarmony](https://github.com/AttieLab-Systems-Genetics/foundrHarmony).
+
 ```{r}
 harmonizeddir <- file.path(params$rootdir, "HarmonizedData")
 ```
@@ -18,25 +21,9 @@ knitr::opts_knit$set(root.dir = harmonizeddir)
 ```
 
 ```{r}
-library(dplyr)
-library(tidyr)
-library(readxl)
-library(readr)
-library(stringr)
-library(foundr) # github/byandell/foundr
-```
-
-```{r}
 #harmonizeddir <- "."
 rawdir <- "../RawData"
 getwd()
-```
-
-```{r}
-for(filename in (filenames <- list.files("R", full.names = TRUE))) {
-  source(filename)
-}
-filenames
 ```
 
 # Harmonize Data
@@ -52,8 +39,10 @@ normalize <- FALSE
 ```
  
 ```{r}
-links <- read.csv(file.path("..", "RawData", "source.csv"), fill = TRUE) %>%
-  mutate(address = file.path(rawdir, address))
+links <- 
+  dplyr::mutate(
+    read.csv(file.path("..", "RawData", "source.csv"), fill = TRUE),
+    address = file.path(rawdir, address))
 ```
 
 ## Annotation
@@ -61,10 +50,12 @@ links <- read.csv(file.path("..", "RawData", "source.csv"), fill = TRUE) %>%
 The experiment annotation file relates the `number` (identifier for `animal`) to the `sex` and `diet`. Needed for `LivRna`.
 
 ```{r}
-annotfile <- linkpath("annot", links)
-excel_sheets(annotfile)
-annot <- read_excel(annotfile) %>%
-  mutate(diet = ifelse(as.character(diet_no) == "200339", "HC_LF", "HF_LC"))
+annotfile <- foundrHarmony::linkpath("annot", links)
+readxl::excel_sheets(annotfile)
+annot <-
+  dplyr::mutate(
+    readxl::read_excel(annotfile),
+    diet = ifelse(as.character(diet_no) == "200339", "HC_LF", "HF_LC"))
 ```
 
 # Datasets
@@ -72,7 +63,7 @@ annot <- read_excel(annotfile) %>%
 ## Physio: Physiological traits
 
 ```{r}
-harmonize("Physio", links, PhysioHarmony, annot, condition_name = "diet",
+foundrHarmony::harmonize("Physio", links, PhysioHarmony, annot, condition_name = "diet",
           sheet = 2,
           rename_function = function(x) {
             rename(x, KetoneBodies = "KB_14wk")
@@ -86,25 +77,25 @@ These are data hand-curated by Mark from data provided by Qiushi
 using an Excel script and saved as CSV.
 
 ```{r warning = FALSE}
-harmonize("PlaMet", links, EnrichHarmony, annot, skiprows = 4,
+foundrHarmony::harmonize("PlaMet", links, EnrichHarmony, annot, skiprows = 4,
           condition_name = condition_name, normalize = normalize)
 ```
 
 Following are old versions not to be used now
 
 ```{r warning = FALSE, eval = FALSE}
-harmonize("PlaMet0", links, MetHarmony, annot, skiprows = 4,
+foundrHarmony::harmonize("PlaMet0", links, MetHarmony, annot, skiprows = 4,
           condition_name = condition_name, normalize = normalize)
-harmonize("PlaMet120", links, MetHarmony, annot, skiprows = 3,
+foundrHarmony::harmonize("PlaMet120", links, MetHarmony, annot, skiprows = 3,
           condition_name = condition_name, normalize = normalize)
-harmonize("PlaMetAll", links, MetHarmony, annot, skiprows = 4,
+foundrHarmony::harmonize("PlaMetAll", links, MetHarmony, annot, skiprows = 4,
           condition_name = condition_name, normalize = normalize)
 ```
 
 ## LivMet: Liver metabolites
 
 ```{r warning = FALSE}
-harmonize("LivMet", links, MetHarmony, annot, skiprows = 3,
+foundrHarmony::harmonize("LivMet", links, MetHarmony, annot, skiprows = 3,
           condition_name = condition_name, normalize = normalize)
 ```
 
@@ -114,23 +105,23 @@ These data have been run through variance stabilizing transform and
 do not need further normalization.
 
 ```{r warning = FALSE}
-harmonize("LivRna", links, LivRnaHarmony, annot,
+foundrHarmony::harmonize("LivRna", links, LivRnaHarmony, annot,
           condition_name = condition_name, normalize = normalize)
 ```
 
 ## LivIso: Liver mRNA isoform data
 
 ```{r}
-harmonize("LivIso", links, LivRnaHarmony, annot, isoform = TRUE,
+foundrHarmony::harmonize("LivIso", links, LivRnaHarmony, annot, isoform = TRUE,
           condition_name = condition_name, normalize = normalize)
 ```
 
 Special situation: get stats for all data.
 
 ```{r eval=FALSE}
-LivIsoStats <- harmonize("LivIso", links, LivRnaHarmony, annot, isoform = TRUE,
-          condition_name = condition_name, normalize = normalize,
-          drop_na_pvalue = FALSE)
+LivIsoStats <- foundrHarmony::harmonize("LivIso", links, LivRnaHarmony, annot,
+  isoform = TRUE, condition_name = condition_name, normalize = normalize,
+  drop_na_pvalue = FALSE)
 ```
 
 ```{r eval=FALSE}
@@ -140,7 +131,7 @@ saveRDS(LivIsoStats, "~/Documents/Research/attie_alan/FounderDietStudy/data/LivI
 ## Lipid: Liver Lipids
 
 ```{r}
-harmonize("Lipid", links, LipidHarmony, annot,
+foundrHarmony::harmonize("Lipid", links, LipidHarmony, annot,
                 sheetNum = 1  ,
                 skipNum = 0,
                 minCol=2,
@@ -151,13 +142,13 @@ harmonize("Lipid", links, LipidHarmony, annot,
 Note that `sampleKey` had 2 errors in it, which have been corrected. (B9-9 -> B6-9; 129-5 -> 129-15)
 
 ```{r eval=FALSE}
-sampleKey <- read_excel("../Primary data from Mark/192 livers sample key.xlsx")
+sampleKey <- readxl::read_excel("../Primary data from Mark/192 livers sample key.xlsx")
 sampleKey[sampleKey[1] == 60, 2] <- "B6-9"
 sampleKey[sampleKey[1] == 167, 2] <- "129-15"
 ```
 
 ```{r eval=FALSE}
-harmonize("OldLipid", links, OldLipidHarmony, annot,
+foundrHarmony::harmonize("OldLipid", links, OldLipidHarmony, annot,
                 sheetNum = 1  ,
                 skipNum = 1,
                 minCol=2,
@@ -170,14 +161,14 @@ harmonize("OldLipid", links, OldLipidHarmony, annot,
 ```{r eval = FALSE}
 dir(".")
 LipidData <- readRDS("Lipid/LipidData.rds")
-LipidData <- LipidData %>% mutate(animal = as.character(animal))
+LipidData <- dplyr::mutate(LipidData, animal = as.character(animal))
 saveRDS(LipidData, "Lipid/LipidData.rds")
 ```
 
 ```{r eval = FALSE}
 LipidStats <- readRDS("Lipid/LipidStats.rds")
 keepTraits <- unique(LipidStats$trait)
-LipidSignal <- partition(readRDS("Lipid/LipidData.rds"))
+LipidSignal <- foundr::partition(readRDS("Lipid/LipidData.rds"))
 LipidSignal <- 
   dplyr::filter(
       partition(readRDS("Lipid/LipidData.rds")),
@@ -188,24 +179,24 @@ saveRDS(LipidSignal, "Lipid/LipidStats.rds")
 ## Enrich: Plasma enrichment over time
 
 ```{r}
-harmonize("Enrich", links, EnrichHarmony, annot,
+foundrHarmony::harmonize("Enrich", links, EnrichHarmony, annot,
           condition_name = condition_name, normalize = normalize)
 ```
   
 ```{r}
-harmonize("PlaEnrich", links, Enrich3Harmony, annot,
+foundrHarmony::harmonize("PlaEnrich", links, Enrich3Harmony, annot,
           condition_name = condition_name, normalize = normalize)
 ```
 
 ```{r eval = FALSE}
 dir(".")
 PlaEnrichData <- readRDS("PlaEnrich/PlaEnrichData.rds")
-PlaEnrichData <- PlaEnrichData %>% mutate(animal = as.character(animal))
+PlaEnrichData <- dplyr::mutate(PlaEnrichData, animal = as.character(animal))
 saveRDS(PlaEnrichData, "PlaEnrich/PlaEnrichData.rds")
 ```
 
 ```{r}
-harmonize("LivEnrich", links, LivEnrichHarmony, annot,
+foundrHarmony::harmonize("LivEnrich", links, LivEnrichHarmony, annot,
           condition_name = condition_name, normalize = normalize)
 ```
 
@@ -218,13 +209,13 @@ traitModule <- readRDS(file.path("traitModule.rds"))
 ```
 
 ```{r}
-harmonize("Module", links, foundr::moduleHarmony,
+foundrHarmony::harmonize("Module", links, foundr::moduleHarmony,
           traitModule[!grepl("MixMod",names(traitModule))],
           condition_name = condition_name, normalize = normalize)
 ```
 
 ```{r}
-harmonize("MixMod", links, foundr::moduleHarmony,
+foundrHarmony::harmonize("MixMod", links, foundr::moduleHarmony,
           traitModule["MixMod"],
           condition_name = condition_name, normalize = normalize)
 ```
@@ -233,20 +224,30 @@ harmonize("MixMod", links, foundr::moduleHarmony,
 
 Standard `FounderDietStudy`:
 
+```{r eval=FALSE}
+foundrHarmony::bind_traits(
+  c("Physio","PlaMet","LivMet","Lipid","Module","Enrich","PlaEnrich","LivEnrich"))
+```
+
+Full `FounderDietStudy`:
+
 ```{r}
-bind_traits(c("Physio","PlaMet","LivMet","Lipid","Module","Enrich","PlaEnrich","LivEnrich"))
+foundrHarmony::bind_traits(
+  c("Physio","PlaMet","Lipid","Module","Enrich","PlaEnrich",
+    "LivMet","LivEnrich","LivRna","LivIso","MixMod"))
 ```
 
 
 Special `FounderLiverDietStudy`:
 
 ```{r}
-bind_traits(c("Physio","LivMet","Lipid","LivRna","LivIso","MixMod"), traitRoot = "liver")
+foundrHarmony::bind_traits(
+  c("Physio","LivMet","Lipid","LivRna","LivIso","MixMod"), traitRoot = "liver")
 ```
 
 Small tester
 
 ```{r}
-bind_traits(c("Physio","Mixmod"), traitRoot = "PhysMix")
+foundrHarmony::bind_traits(c("Physio","Mixmod"), traitRoot = "PhysMix")
 ```
 
